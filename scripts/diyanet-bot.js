@@ -8,9 +8,6 @@ const BASE_URL = "https://awqatsalah.diyanet.gov.tr";
 let currentAccessToken = "";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// ==========================================
-// TOKEN MANAGEMENT
-// ==========================================
 async function loginToDiyanet() {
     console.log("🔄 Hole (neues) Token von Diyanet...");
     const loginPayload = { email: EMAIL, password: PASSWORD };
@@ -51,12 +48,8 @@ async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) 
     return res.json();
 }
 
-// ==========================================
-// MAIN RUNNER
-// ==========================================
 async function run() {
     console.log("🤖 ATF Diyanet Bot (10-Batch-Edition) gestartet...");
-    
     const batchInput = process.env.BATCH || "1";
     const locationsDir = path.join(__dirname, '../data/locations');
     const vakitlerDir = path.join(__dirname, '../data/vakitler');
@@ -72,12 +65,10 @@ async function run() {
 
     try {
         await loginToDiyanet();
-        
         const countriesRes = await fetchApi("/api/Place/Countries");
         const allCountries = countriesRes.data; 
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(allCountries));
 
-        // 10-Batch Logik
         let targetCountries = [];
         if (batchInput === "ALL") {
             targetCountries = allCountries;
@@ -95,31 +86,35 @@ async function run() {
         searchIndex = searchIndex.filter(item => !targetCountryIds.includes(item.country));
 
         for (const country of targetCountries) {
-            console.log(`\n🌍 [${country.id}] ${country.name}`);
+            console.log(`\n🌍 Verarbeite: ${country.name} (ID: ${country.id})`);
             
             try {
                 const statesData = await fetchApi(`/api/Place/States/${country.id}`);
                 const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
                 fs.writeFileSync(path.join(locationsDir, `states_${country.id}.json`), JSON.stringify(statesMap));
-                await sleep(500); // Kurze Pause nach Bundesländern
+                await sleep(500);
 
                 for (const state of statesMap) {
+                    // NEU: Logge das Bundesland/Eyalet wieder ein
+                    console.log(`  📍 Städte für: ${state.name}`);
+                    
                     const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
                     const citiesMap = citiesData.data.map(c => ({ id: c.id.toString(), name: c.name }));
                     fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
-                    await sleep(500); // Kurze Pause nach Städten-Liste
+                    await sleep(500);
 
                     for (const city of citiesMap) {
                         try {
+                            // NEU: Detaillierter Log für die Stadt mit ID
+                            console.log(`    ⏳ Vakitler: ${city.name} (${city.id})`);
+                            
                             const vData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`);
                             fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vData));
                             searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
-                            console.log(`  ✅ ${city.name}`);
                         } catch (cityError) {
-                            if (cityError.status === 404) console.warn(`  ⚠️ 404 Skip: ${city.name}`);
+                            if (cityError.status === 404) console.warn(`    ⚠️ Übersprungen: Keine Daten für ${city.name} (404)`);
                             else throw cityError;
                         }
-                        // HIER: Geändert von 1500 auf 1000ms
                         await sleep(1000); 
                     }
                 }
