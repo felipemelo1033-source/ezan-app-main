@@ -2,11 +2,11 @@ name: Diyanet Data Fetcher
 
 on:
   schedule:
-    - cron: '0 2 1 * *' # Einmal im Monat alles
+    - cron: '0 2 1 * *' # Läuft automatisch am 1. jeden Monats um 02:00 Uhr
   workflow_dispatch: 
     inputs:
       batchNumber:
-        description: 'Batch auswählen (1-10)'
+        description: 'Welchen Teil der Welt laden? (1-10)'
         required: true
         default: '1'
         type: choice
@@ -26,6 +26,11 @@ on:
 jobs:
   update-vakitler:
     runs-on: ubuntu-latest
+    
+    # CRITICAL: Erlaubt dem Bot, die neuen Dateien hochzuladen
+    permissions:
+      contents: write
+
     steps:
       - name: Code auschecken
         uses: actions/checkout@v4
@@ -42,10 +47,16 @@ jobs:
           BATCH: ${{ github.event.inputs.batchNumber || '1' }}
         run: node scripts/diyanet-bot.js
 
-      - name: Daten speichern
+      - name: Neue Daten speichern (Commit & Push)
         run: |
           git config --global user.name "ATF-Bot"
           git config --global user.email "bot@atf-mobil.com"
+          
+          # Fügt alle neuen Dateien im data-Ordner hinzu
           git add data/
-          git commit -m "🤖 Batch ${{ github.event.inputs.batchNumber || '1' }} geladen" || echo "Nichts neu"
+          
+          # Erstellt den Commit nur, wenn es wirklich Änderungen gibt
+          git commit -m "🤖 Auto-Update: Batch ${{ github.event.inputs.batchNumber || '1' }} abgeschlossen" || echo "Keine Änderungen zum Committen"
+          
+          # Schiebt die Änderungen hoch
           git push
