@@ -35,22 +35,16 @@ async function run() {
     try {
         console.log("🔑 Sende Login-Daten an Diyanet...");
         
-        // Wir schießen aus allen Rohren, falls Diyanet das Feld anders benennt:
         const loginPayload = {
             email: EMAIL,
-            userName: EMAIL,
-            username: EMAIL,
             password: PASSWORD
         };
 
         const loginData = await fetchApi("/Auth/Login", null, "POST", loginPayload);
         
-        // GANZ WICHTIG: Wir loggen die exakte Antwort!
-        console.log("📥 Antwort von Diyanet:", JSON.stringify(loginData));
+        // HIER IST DIE REPARATUR (accessToken statt token)
+        const token = loginData.data ? loginData.data.accessToken : null;
 
-        const token = loginData.data ? loginData.data.token : null;
-
-        // Sicherheits-Check: Haben wir WIRKLICH ein Token bekommen?
         if (!token) {
             throw new Error(`Kein Token erhalten! Diyanet sagt: ${JSON.stringify(loginData)}`);
         }
