@@ -33,41 +33,32 @@ async function run() {
     if (!fs.existsSync(vakitlerDir)) fs.mkdirSync(vakitlerDir, { recursive: true });
 
     try {
-        console.log("🔑 Sende Login-Daten an Diyanet...");
-        
-        const loginPayload = {
-            email: EMAIL,
-            password: PASSWORD
-        };
-
+        console.log("🔑 Logge ein...");
+        const loginPayload = { email: EMAIL, password: PASSWORD };
         const loginData = await fetchApi("/Auth/Login", null, "POST", loginPayload);
-        
-        // HIER IST DIE REPARATUR (accessToken statt token)
         const token = loginData.data ? loginData.data.accessToken : null;
 
-        if (!token) {
-            throw new Error(`Kein Token erhalten! Diyanet sagt: ${JSON.stringify(loginData)}`);
-        }
+        if (!token) throw new Error("Kein Token erhalten!");
+        console.log("✅ Token erfolgreich erhalten!");
 
-        console.log("✅ Echtes Token erfolgreich erhalten!");
+        console.log("🔍 Lade alle Länder von Diyanet...");
+        const countriesRes = await fetchApi("/api/Place/Countries", token);
+        const targetCountries = countriesRes.data; 
 
-        const targetCountries = [2]; 
-        
-        const countryList = [
-            { id: "2", name: "Almanya" }
-        ];
-        fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(countryList));
+        // Speichere die komplette Länderliste
+        fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(targetCountries));
+        console.log(`✅ ${targetCountries.length} Länder gefunden.`);
 
-        for (const countryId of targetCountries) {
-            console.log(`\n🌍 Lade Bundesländer für Land-ID: ${countryId}`);
-            const statesData = await fetchApi(`/api/Place/States/${countryId}`, token);
+        for (const country of targetCountries) {
+            console.log(`\n🌍 Verarbeite: ${country.name} (ID: ${country.id})`);
+            const statesData = await fetchApi(`/api/Place/States/${country.id}`, token);
             await sleep(1000); 
             
             const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
-            fs.writeFileSync(path.join(locationsDir, `states_${countryId}.json`), JSON.stringify(statesMap));
+            fs.writeFileSync(path.join(locationsDir, `states_${country.id}.json`), JSON.stringify(statesMap));
 
             for (const state of statesMap) {
-                console.log(`  📍 Lade Städte für: ${state.name}`);
+                console.log(`  📍 Städte für: ${state.name}`);
                 const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`, token);
                 await sleep(1000);
 
@@ -75,26 +66,24 @@ async function run() {
                 fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
 
                 for (const city of citiesMap) {
-                    searchIndex.push({ id: city.id, name: city.name, country: countryId.toString() });
+                    searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
 
-                    console.log(`    ⏳ Lade Vakitler für: ${city.name} (${city.id})`);
+                    console.log(`    ⏳ Vakitler: ${city.name} (${city.id})`);
                     const vakitlerData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`, token);
                     fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vakitlerData));
                     
-                    await sleep(1500); 
+                    await sleep(1500); // Fair-Play-Pause
                 }
             }
         }
 
         console.log("\n🔍 Speichere globalen Such-Index...");
         fs.writeFileSync(path.join(locationsDir, 'search_index.json'), JSON.stringify(searchIndex));
-
-        console.log("🎉 Alle Daten erfolgreich aktualisiert!");
+        console.log("🎉 Fertig!");
 
     } catch (error) {
-        console.error("❌ SCHWERER FEHLER:", error);
+        console.error("❌ FEHLER:", error);
         process.exit(1); 
     }
 }
-
 run();
