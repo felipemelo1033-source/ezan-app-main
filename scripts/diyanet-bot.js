@@ -57,7 +57,6 @@ async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) 
 async function run() {
     console.log("🤖 ATF Diyanet Bot (10-Batch-Edition) gestartet...");
     
-    // Batch Konfiguration
     const batchInput = process.env.BATCH || "1";
     const locationsDir = path.join(__dirname, '../data/locations');
     const vakitlerDir = path.join(__dirname, '../data/vakitler');
@@ -78,7 +77,7 @@ async function run() {
         const allCountries = countriesRes.data; 
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(allCountries));
 
-        // 10-Batch Logik Berechnung
+        // 10-Batch Logik
         let targetCountries = [];
         if (batchInput === "ALL") {
             targetCountries = allCountries;
@@ -92,7 +91,6 @@ async function run() {
             console.log(`📦 Batch ${bNum}/10: Verarbeite Länder Index ${start} bis ${end}`);
         }
 
-        // Vorbereiten: Alte Einträge dieser Länder aus dem Index werfen (Vermeidung von Duplikaten)
         const targetCountryIds = targetCountries.map(c => c.id.toString());
         searchIndex = searchIndex.filter(item => !targetCountryIds.includes(item.country));
 
@@ -103,13 +101,13 @@ async function run() {
                 const statesData = await fetchApi(`/api/Place/States/${country.id}`);
                 const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
                 fs.writeFileSync(path.join(locationsDir, `states_${country.id}.json`), JSON.stringify(statesMap));
-                await sleep(800);
+                await sleep(500); // Kurze Pause nach Bundesländern
 
                 for (const state of statesMap) {
                     const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
                     const citiesMap = citiesData.data.map(c => ({ id: c.id.toString(), name: c.name }));
                     fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
-                    await sleep(800);
+                    await sleep(500); // Kurze Pause nach Städten-Liste
 
                     for (const city of citiesMap) {
                         try {
@@ -121,12 +119,12 @@ async function run() {
                             if (cityError.status === 404) console.warn(`  ⚠️ 404 Skip: ${city.name}`);
                             else throw cityError;
                         }
-                        await sleep(1200); 
+                        // HIER: Geändert von 1500 auf 1000ms
+                        await sleep(1000); 
                     }
                 }
             } catch (countryError) {
                 console.error(`❌ Fehler bei Land ${country.name}:`, countryError.message);
-                // Weitermachen mit dem nächsten Land
             }
         }
 
