@@ -2,32 +2,19 @@ name: Diyanet Data Fetcher
 
 on:
   schedule:
-    - cron: '0 2 1 * *' # Läuft automatisch am 1. jeden Monats um 02:00 Uhr
+    - cron: '0 2 * * 0' # Jeden Sonntag um 02:00 Uhr (Puffer-Strategie)
   workflow_dispatch: 
     inputs:
       batchNumber:
-        description: 'Welchen Teil der Welt laden? (1-10)'
+        description: 'Batch auswählen (1-10)'
         required: true
         default: '1'
         type: choice
-        options:
-          - '1'
-          - '2'
-          - '3'
-          - '4'
-          - '5'
-          - '6'
-          - '7'
-          - '8'
-          - '9'
-          - '10'
-          - 'ALL'
+        options: ['1','2','3','4','5','6','7','8','9','10','ALL']
 
 jobs:
   update-vakitler:
     runs-on: ubuntu-latest
-    
-    # CRITICAL: Erlaubt dem Bot, die neuen Dateien hochzuladen
     permissions:
       contents: write
 
@@ -40,23 +27,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Diyanet Bot starten
+      # NEU: Ein professioneller Retry-Mechanismus
+      - name: Diyanet Bot starten (mit 3 Versuchen bei Fehlern)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 350 # Zeitlimit für den gesamten Job
+          max_attempts: 3      # Wenn es kracht, probiere es insgesamt 3x
+          retry_wait_seconds: 300 # Warte 5 Minuten (300s) bis zum nächsten Versuch
+          command: node scripts/diyanet-bot.js
         env:
           DIYANET_EMAIL: ${{ secrets.DIYANET_EMAIL }}
           DIYANET_PASSWORD: ${{ secrets.DIYANET_PASSWORD }}
           BATCH: ${{ github.event.inputs.batchNumber || '1' }}
-        run: node scripts/diyanet-bot.js
 
-      - name: Neue Daten speichern (Commit & Push)
+      - name: Daten speichern
+        # Dieser Schritt läuft nur, wenn der Bot-Schritt oben erfolgreich war
         run: |
           git config --global user.name "ATF-Bot"
           git config --global user.email "bot@atf-mobil.com"
-          
-          # Fügt alle neuen Dateien im data-Ordner hinzu
           git add data/
-          
-          # Erstellt den Commit nur, wenn es wirklich Änderungen gibt
-          git commit -m "🤖 Auto-Update: Batch ${{ github.event.inputs.batchNumber || '1' }} abgeschlossen" || echo "Keine Änderungen zum Committen"
-          
-          # Schiebt die Änderungen hoch
+          git commit -m "🤖 Auto-Update: Batch ${{ github.event.inputs.batchNumber || '1' }} erfolgreich" || echo "Nichts neu"
           git push
