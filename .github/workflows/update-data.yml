@@ -1,11 +1,9 @@
-# Dateipfad: .github/workflows/update-data.yml
 name: Diyanet Data Fetcher
 
 on:
   schedule:
-    # Jeden 1. des Monats um 02:00 Uhr nachts (Serverzeit)
     - cron: '0 2 1 * *'
-  workflow_dispatch: # Erlaubt uns, das Skript manuell per Knopfdruck zu starten!
+  workflow_dispatch: 
 
 jobs:
   update-vakitler:
