@@ -8,6 +8,9 @@ const BASE_URL = "https://awqatsalah.diyanet.gov.tr";
 let currentAccessToken = "";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// ==========================================
+// TOKEN MANAGEMENT
+// ==========================================
 async function loginToDiyanet() {
     console.log("🔄 Hole (neues) Token von Diyanet...");
     const loginPayload = { email: EMAIL, password: PASSWORD };
@@ -23,6 +26,9 @@ async function loginToDiyanet() {
     console.log("✅ Token erhalten.");
 }
 
+// ==========================================
+// API FETCH (Mit Timeout & Auto-Retry)
+// ==========================================
 async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) {
     const options = {
         method: method,
@@ -31,25 +37,48 @@ async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) 
     if (currentAccessToken) options.headers["Authorization"] = `Bearer ${currentAccessToken}`;
     if (body) options.body = JSON.stringify(body);
 
-    const res = await fetch(BASE_URL + endpoint, options);
-    
-    if (res.status === 401 && !isRetry) {
-        console.log(`⚠️ Token abgelaufen. Re-Login...`);
-        await loginToDiyanet();
-        return await fetchApi(endpoint, method, body, true); 
-    }
+    // 🕒 NEU: Notbremse nach 20 Sekunden (AbortController)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    options.signal = controller.signal;
 
-    if (!res.ok) {
-        const errorText = await res.text();
-        const error = new Error(errorText);
-        error.status = res.status;
-        throw error;
+    try {
+        const res = await fetch(BASE_URL + endpoint, options);
+        clearTimeout(timeoutId); // Timeout stoppen, wenn Antwort da ist
+
+        // Token abgelaufen?
+        if (res.status === 401 && !isRetry) {
+            console.log(`⚠️ Token abgelaufen. Re-Login...`);
+            await loginToDiyanet();
+            return await fetchApi(endpoint, method, body, true); 
+        }
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            const error = new Error(errorText);
+            error.status = res.status;
+            throw error;
+        }
+        return await res.json();
+
+    } catch (err) {
+        clearTimeout(timeoutId);
+        
+        // Wenn es ein Timeout war, versuchen wir es EINMAL erneut
+        if (err.name === 'AbortError' && !isRetry) {
+            console.warn(`⏳ Timeout bei ${endpoint}. Diyanet-Server hängt. Zweiter Versuch...`);
+            await sleep(3000); // 3 Sek. durchatmen vor dem Neustart
+            return await fetchApi(endpoint, method, body, true);
+        }
+        throw err; // Bei anderen Fehlern normal abbrechen
     }
-    return res.json();
 }
 
+// ==========================================
+// MAIN RUNNER
+// ==========================================
 async function run() {
-    console.log("🤖 ATF Diyanet Bot (10-Batch-Edition) gestartet...");
+    console.log("🤖 ATF Diyanet Bot (10-Batch-Edition + Timeout-Schutz) gestartet...");
     const batchInput = process.env.BATCH || "1";
     const locationsDir = path.join(__dirname, '../data/locations');
     const vakitlerDir = path.join(__dirname, '../data/vakitler');
@@ -69,6 +98,7 @@ async function run() {
         const allCountries = countriesRes.data; 
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(allCountries));
 
+        // 10-Batch Logik
         let targetCountries = [];
         if (batchInput === "ALL") {
             targetCountries = allCountries;
@@ -95,7 +125,7 @@ async function run() {
                 await sleep(500);
 
                 for (const state of statesMap) {
-                    // NEU: Logge das Bundesland/Eyalet wieder ein
+                    // Logge das Bundesland/Eyalet
                     console.log(`  📍 Städte für: ${state.name}`);
                     
                     const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
@@ -105,17 +135,20 @@ async function run() {
 
                     for (const city of citiesMap) {
                         try {
-                            // NEU: Detaillierter Log für die Stadt mit ID
+                            // Detaillierter Log für die Stadt
                             console.log(`    ⏳ Vakitler: ${city.name} (${city.id})`);
                             
                             const vData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`);
                             fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vData));
                             searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
                         } catch (cityError) {
-                            if (cityError.status === 404) console.warn(`    ⚠️ Übersprungen: Keine Daten für ${city.name} (404)`);
-                            else throw cityError;
+                            if (cityError.status === 404) {
+                                console.warn(`    ⚠️ Übersprungen: Keine Daten für ${city.name} (404)`);
+                            } else {
+                                throw cityError;
+                            }
                         }
-                        await sleep(1000); 
+                        await sleep(1000); // 1 Sekunde Wartezeit
                     }
                 }
             } catch (countryError) {
