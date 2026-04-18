@@ -5,161 +5,137 @@ const EMAIL = process.env.DIYANET_EMAIL;
 const PASSWORD = process.env.DIYANET_PASSWORD;
 const BASE_URL = "https://awqatsalah.diyanet.gov.tr"; 
 
-// Globale Variable für das Token
 let currentAccessToken = "";
-
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
-// 1. NEU: Separate Login-Funktion für den Auto-Retry
+// TOKEN MANAGEMENT
 // ==========================================
 async function loginToDiyanet() {
     console.log("🔄 Hole (neues) Token von Diyanet...");
     const loginPayload = { email: EMAIL, password: PASSWORD };
-    
     const res = await fetch(BASE_URL + "/Auth/Login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginPayload)
     });
-
-    if (!res.ok) {
-        throw new Error(`❌ Login fehlgeschlagen! Status: ${res.status}`);
-    }
-
+    if (!res.ok) throw new Error(`❌ Login fehlgeschlagen! Status: ${res.status}`);
     const loginData = await res.json();
     currentAccessToken = loginData.data ? loginData.data.accessToken : null;
-
-    if (!currentAccessToken) throw new Error("Kein Token im Login-Response gefunden!");
-    console.log("✅ Neues Token erfolgreich erhalten!");
+    if (!currentAccessToken) throw new Error("Kein Token erhalten!");
+    console.log("✅ Token erhalten.");
 }
 
-// ==========================================
-// 2. MODIFIZIERT: fetchApi mit 401-Erkennung
-// ==========================================
 async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) {
     const options = {
         method: method,
         headers: { "Content-Type": "application/json" }
     };
-    // Wir nutzen jetzt immer das globale Token
     if (currentAccessToken) options.headers["Authorization"] = `Bearer ${currentAccessToken}`;
     if (body) options.body = JSON.stringify(body);
 
     const res = await fetch(BASE_URL + endpoint, options);
     
-    // ✨ WENN DAS TOKEN ABGELAUFEN IST (401)
-    if (res.status === 401) {
-        if (isRetry) {
-            throw new Error(`❌ API Fehler bei ${endpoint}: 401 | Auch nach Login-Versuch fehlgeschlagen!`);
-        }
-        console.log(`⚠️ Token abgelaufen bei ${endpoint}. Logge automatisch neu ein...`);
-        
-        await loginToDiyanet(); // Neues Token holen
-        
-        // Exakt selbe Anfrage nochmal versuchen!
+    if (res.status === 401 && !isRetry) {
+        console.log(`⚠️ Token abgelaufen. Re-Login...`);
+        await loginToDiyanet();
         return await fetchApi(endpoint, method, body, true); 
     }
 
     if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`API Fehler bei ${endpoint}: ${res.status} | Details: ${errorText}`);
+        const error = new Error(errorText);
+        error.status = res.status;
+        throw error;
     }
-    
     return res.json();
 }
 
 // ==========================================
-// 3. HAUPT-SKRIPT
+// MAIN RUNNER
 // ==========================================
 async function run() {
-    console.log("🤖 ATF Diyanet Bot gestartet...");
+    console.log("🤖 ATF Diyanet Bot (10-Batch-Edition) gestartet...");
     
-    // BATCH-MODUS (1, 2, 3, 4 oder ALL)
-    const currentBatch = process.env.BATCH || "1";
-    console.log(`🚀 Aktiver BATCH-Modus: ${currentBatch}`);
-
+    // Batch Konfiguration
+    const batchInput = process.env.BATCH || "1";
     const locationsDir = path.join(__dirname, '../data/locations');
     const vakitlerDir = path.join(__dirname, '../data/vakitler');
+    
     if (!fs.existsSync(locationsDir)) fs.mkdirSync(locationsDir, { recursive: true });
     if (!fs.existsSync(vakitlerDir)) fs.mkdirSync(vakitlerDir, { recursive: true });
 
-    // Such-Index clever laden, damit Batches alte Daten nicht löschen
     let searchIndex = [];
     const searchIndexPath = path.join(locationsDir, 'search_index.json');
     if (fs.existsSync(searchIndexPath)) {
-        try {
-            searchIndex = JSON.parse(fs.readFileSync(searchIndexPath, 'utf-8'));
-        } catch(e) { console.log("Neuer Such-Index wird erstellt."); }
+        try { searchIndex = JSON.parse(fs.readFileSync(searchIndexPath, 'utf-8')); } catch(e) {}
     }
 
     try {
-        // Erstes Login beim Skript-Start
         await loginToDiyanet();
-
-        console.log("🔍 Lade alle Länder von Diyanet...");
-        // Da das Token global ist, brauchen wir es nicht mehr zu übergeben
+        
         const countriesRes = await fetchApi("/api/Place/Countries");
         const allCountries = countriesRes.data; 
-
-        // Speichere die komplette Länderliste (muss immer da sein)
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(allCountries));
-        console.log(`✅ Insgesamt ${allCountries.length} Länder gefunden.`);
 
-        // ----------------------------------------
-        // BATCH LOGIK: Liste zerschneiden
-        // ----------------------------------------
+        // 10-Batch Logik Berechnung
         let targetCountries = [];
-        if (currentBatch === "1") targetCountries = allCountries.slice(0, 52);
-        else if (currentBatch === "2") targetCountries = allCountries.slice(52, 104);
-        else if (currentBatch === "3") targetCountries = allCountries.slice(104, 156);
-        else if (currentBatch === "4") targetCountries = allCountries.slice(156);
-        else targetCountries = allCountries; // Fallback
+        if (batchInput === "ALL") {
+            targetCountries = allCountries;
+        } else {
+            const bNum = parseInt(batchInput);
+            const total = allCountries.length;
+            const size = Math.ceil(total / 10);
+            const start = (bNum - 1) * size;
+            const end = start + size;
+            targetCountries = allCountries.slice(start, end);
+            console.log(`📦 Batch ${bNum}/10: Verarbeite Länder Index ${start} bis ${end}`);
+        }
 
-        console.log(`🌍 Verarbeite ${targetCountries.length} Länder in diesem Durchlauf...`);
-
-        // Wir entfernen aus dem bestehenden Suchindex alle Städte der LÄNDER, die wir JETZT neu laden,
-        // um Duplikate zu vermeiden, behalten aber die aus den anderen Batches!
+        // Vorbereiten: Alte Einträge dieser Länder aus dem Index werfen (Vermeidung von Duplikaten)
         const targetCountryIds = targetCountries.map(c => c.id.toString());
         searchIndex = searchIndex.filter(item => !targetCountryIds.includes(item.country));
 
-        // ----------------------------------------
-        // NORMALE SCHLEIFE
-        // ----------------------------------------
         for (const country of targetCountries) {
-            console.log(`\n🌍 Verarbeite: ${country.name} (ID: ${country.id})`);
-            const statesData = await fetchApi(`/api/Place/States/${country.id}`);
-            await sleep(1000); 
+            console.log(`\n🌍 [${country.id}] ${country.name}`);
             
-            const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
-            fs.writeFileSync(path.join(locationsDir, `states_${country.id}.json`), JSON.stringify(statesMap));
+            try {
+                const statesData = await fetchApi(`/api/Place/States/${country.id}`);
+                const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
+                fs.writeFileSync(path.join(locationsDir, `states_${country.id}.json`), JSON.stringify(statesMap));
+                await sleep(800);
 
-            for (const state of statesMap) {
-                console.log(`  📍 Städte für: ${state.name}`);
-                const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
-                await sleep(1000);
+                for (const state of statesMap) {
+                    const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
+                    const citiesMap = citiesData.data.map(c => ({ id: c.id.toString(), name: c.name }));
+                    fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
+                    await sleep(800);
 
-                const citiesMap = citiesData.data.map(c => ({ id: c.id.toString(), name: c.name }));
-                fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
-
-                for (const city of citiesMap) {
-                    searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
-
-                    console.log(`    ⏳ Vakitler: ${city.name} (${city.id})`);
-                    const vakitlerData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`);
-                    fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vakitlerData));
-                    
-                    await sleep(1500); // Fair-Play-Pause
+                    for (const city of citiesMap) {
+                        try {
+                            const vData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`);
+                            fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vData));
+                            searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
+                            console.log(`  ✅ ${city.name}`);
+                        } catch (cityError) {
+                            if (cityError.status === 404) console.warn(`  ⚠️ 404 Skip: ${city.name}`);
+                            else throw cityError;
+                        }
+                        await sleep(1200); 
+                    }
                 }
+            } catch (countryError) {
+                console.error(`❌ Fehler bei Land ${country.name}:`, countryError.message);
+                // Weitermachen mit dem nächsten Land
             }
         }
 
-        console.log("\n🔍 Speichere globalen Such-Index...");
+        console.log("\n💾 Speichere Such-Index...");
         fs.writeFileSync(searchIndexPath, JSON.stringify(searchIndex));
-        console.log("🎉 Fertig!");
+        console.log("🎉 Batch abgeschlossen!");
 
     } catch (error) {
-        console.error("❌ FEHLER:", error);
+        console.error("❌ Kritischer Abbruch:", error);
         process.exit(1); 
     }
 }
