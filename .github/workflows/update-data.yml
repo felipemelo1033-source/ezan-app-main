@@ -1,0 +1,35 @@
+# Dateipfad: .github/workflows/update-data.yml
+name: Diyanet Data Fetcher
+
+on:
+  schedule:
+    # Jeden 1. des Monats um 02:00 Uhr nachts (Serverzeit)
+    - cron: '0 2 1 * *'
+  workflow_dispatch: # Erlaubt uns, das Skript manuell per Knopfdruck zu starten!
+
+jobs:
+  update-vakitler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v3
+
+      - name: Node.js installieren
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Diyanet Bot starten
+        env:
+          DIYANET_EMAIL: ${{ secrets.DIYANET_EMAIL }}
+          DIYANET_PASSWORD: ${{ secrets.DIYANET_PASSWORD }}
+        run: node scripts/diyanet-bot.js
+
+      - name: Neue Daten speichern (Commit & Push)
+        run: |
+          git config --global user.name "ATF-Bot"
+          git config --global user.email "bot@atf-mobil.com"
+          git add data/
+          git commit -m "🤖 Auto-Update: Diyanet Vakitler & Locations" || echo "Keine Änderungen zu pushen"
+          git push
