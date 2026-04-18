@@ -3,7 +3,6 @@ const path = require('path');
 
 const EMAIL = process.env.DIYANET_EMAIL;
 const PASSWORD = process.env.DIYANET_PASSWORD;
-// GEÄNDERT: Das "/api" ist hier weg!
 const BASE_URL = "https://awqatsalah.diyanet.gov.tr"; 
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -18,7 +17,6 @@ async function fetchApi(endpoint, token, method = "GET", body = null) {
 
     const res = await fetch(BASE_URL + endpoint, options);
     if (!res.ok) {
-        // GEÄNDERT: Zeigt uns jetzt die exakte Diyanet-Fehlermeldung an!
         const errorText = await res.text();
         throw new Error(`API Fehler bei ${endpoint}: ${res.status} | Details: ${errorText}`);
     }
@@ -35,20 +33,37 @@ async function run() {
     if (!fs.existsSync(vakitlerDir)) fs.mkdirSync(vakitlerDir, { recursive: true });
 
     try {
-        // 1. Login (Hier OHNE /api)
-        console.log("🔑 Logge bei Diyanet ein...");
-        const loginData = await fetchApi("/Auth/Login", null, "POST", { email: EMAIL, password: PASSWORD });
-        const token = loginData.data.token;
-        console.log("✅ Login erfolgreich!");
+        console.log("🔑 Sende Login-Daten an Diyanet...");
+        
+        // Wir schießen aus allen Rohren, falls Diyanet das Feld anders benennt:
+        const loginPayload = {
+            email: EMAIL,
+            userName: EMAIL,
+            username: EMAIL,
+            password: PASSWORD
+        };
 
-        const targetCountries = [2]; // Nur Deutschland für den Test
+        const loginData = await fetchApi("/Auth/Login", null, "POST", loginPayload);
+        
+        // GANZ WICHTIG: Wir loggen die exakte Antwort!
+        console.log("📥 Antwort von Diyanet:", JSON.stringify(loginData));
+
+        const token = loginData.data ? loginData.data.token : null;
+
+        // Sicherheits-Check: Haben wir WIRKLICH ein Token bekommen?
+        if (!token) {
+            throw new Error(`Kein Token erhalten! Diyanet sagt: ${JSON.stringify(loginData)}`);
+        }
+
+        console.log("✅ Echtes Token erfolgreich erhalten!");
+
+        const targetCountries = [2]; 
         
         const countryList = [
             { id: "2", name: "Almanya" }
         ];
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(countryList));
 
-        // 3. Crawler startet (Ab hier MIT /api !)
         for (const countryId of targetCountries) {
             console.log(`\n🌍 Lade Bundesländer für Land-ID: ${countryId}`);
             const statesData = await fetchApi(`/api/Place/States/${countryId}`, token);
@@ -69,7 +84,6 @@ async function run() {
                     searchIndex.push({ id: city.id, name: city.name, country: countryId.toString() });
 
                     console.log(`    ⏳ Lade Vakitler für: ${city.name} (${city.id})`);
-                    // Laut PDF: /api/PrayerTime/Monthly/
                     const vakitlerData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`, token);
                     fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vakitlerData));
                     
