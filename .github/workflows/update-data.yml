@@ -4,6 +4,19 @@ on:
   schedule:
     - cron: '0 2 1 * *'
   workflow_dispatch: 
+    # NEU: Das Menü zum Auswählen des Batches beim manuellen Start
+    inputs:
+      batchNumber:
+        description: 'Welchen Batch möchtest du ausführen? (1, 2, 3 oder 4)'
+        required: true
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - 'ALL'
 
 jobs:
   update-vakitler:
@@ -22,6 +35,8 @@ jobs:
         env:
           DIYANET_EMAIL: ${{ secrets.DIYANET_EMAIL }}
           DIYANET_PASSWORD: ${{ secrets.DIYANET_PASSWORD }}
+          # NEU: Gibt die Auswahl aus dem Menü an das Skript weiter (Standard ist 1)
+          BATCH: ${{ github.event.inputs.batchNumber || '1' }}
         run: node scripts/diyanet-bot.js
 
       - name: Neue Daten speichern (Commit & Push)
@@ -29,5 +44,6 @@ jobs:
           git config --global user.name "ATF-Bot"
           git config --global user.email "bot@atf-mobil.com"
           git add data/
-          git commit -m "🤖 Auto-Update: Diyanet Vakitler & Locations" || echo "Keine Änderungen zu pushen"
+          # NEU: Schreibt die Batch-Nummer mit in die Commit-Nachricht
+          git commit -m "🤖 Auto-Update: Diyanet Vakitler & Locations (Batch ${{ github.event.inputs.batchNumber || '1' }})" || echo "Keine Änderungen zu pushen"
           git push
