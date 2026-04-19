@@ -2,7 +2,7 @@ name: Diyanet Data Fetcher
 
 on:
   schedule:
-    - cron: '0 2 * * 0' # Jeden Sonntag um 02:00 Uhr (Puffer-Strategie)
+    - cron: '0 2 * * 0' # Jeden Sonntag um 02:00 Uhr
   workflow_dispatch: 
     inputs:
       batchNumber:
@@ -27,24 +27,35 @@ jobs:
         with:
           node-version: '20'
 
-      # NEU: Ein professioneller Retry-Mechanismus
-      - name: Diyanet Bot starten (mit 3 Versuchen bei Fehlern)
+      - name: Bestimme Batch-Nummer
+        id: set-batch
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "BATCH_TO_RUN=ALL" >> $GITHUB_ENV
+          else
+            echo "BATCH_TO_RUN=${{ github.event.inputs.batchNumber }}" >> $GITHUB_ENV
+          fi
+
+      - name: Diyanet Bot starten
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 350 # Zeitlimit für den gesamten Job
-          max_attempts: 3      # Wenn es kracht, probiere es insgesamt 3x
-          retry_wait_seconds: 300 # Warte 5 Minuten (300s) bis zum nächsten Versuch
+          timeout_minutes: 350
+          max_attempts: 3
+          retry_wait_seconds: 300
           command: node scripts/diyanet-bot.js
         env:
           DIYANET_EMAIL: ${{ secrets.DIYANET_EMAIL }}
           DIYANET_PASSWORD: ${{ secrets.DIYANET_PASSWORD }}
-          BATCH: ${{ github.event.inputs.batchNumber || '1' }}
+          BATCH: ${{ env.BATCH_TO_RUN }}
 
-      - name: Daten speichern
-        # Dieser Schritt läuft nur, wenn der Bot-Schritt oben erfolgreich war
+      - name: Daten speichern (Mit Konflikt-Schutz)
         run: |
           git config --global user.name "ATF-Bot"
           git config --global user.email "bot@atf-mobil.com"
           git add data/
-          git commit -m "🤖 Auto-Update: Batch ${{ github.event.inputs.batchNumber || '1' }} erfolgreich" || echo "Nichts neu"
+          git commit -m "🤖 Auto-Update: Batch ${{ env.BATCH_TO_RUN }} erfolgreich" || echo "Nichts neu"
+          
+          # NEU: Holt erst die neuesten Änderungen vom Server, um Konflikte zu vermeiden!
+          git pull --rebase origin main
+          
           git push
