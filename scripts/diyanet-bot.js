@@ -3,9 +3,12 @@ const path = require('path');
 
 const EMAIL = process.env.DIYANET_EMAIL;
 const PASSWORD = process.env.DIYANET_PASSWORD;
-const BASE_URL = "https://awqatsalah.diyanet.gov.tr"; 
+const BASE_URL = "https://awqatsalah.diyanet.gov.tr";
 
 let currentAccessToken = "";
+let reLoginCount = 0;
+const MAX_RELOGINS = 3;
+
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
@@ -27,9 +30,10 @@ async function loginToDiyanet() {
 }
 
 // ==========================================
-// API FETCH (Mit Timeout & Auto-Retry)
+// API FETCH (Mit Timeout, 401-Re-Login, 429/5xx-Backoff)
 // ==========================================
-async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) {
+async function fetchApi(endpoint, method = "GET", body = null, attempt = 0) {
+    const MAX_ATTEMPTS = 4; // Initial + 3 Retries für transiente Fehler
     const options = {
         method: method,
         headers: { "Content-Type": "application/json" }
@@ -37,20 +41,31 @@ async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) 
     if (currentAccessToken) options.headers["Authorization"] = `Bearer ${currentAccessToken}`;
     if (body) options.body = JSON.stringify(body);
 
-    // 🕒 NEU: Notbremse nach 20 Sekunden (AbortController)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     options.signal = controller.signal;
 
     try {
         const res = await fetch(BASE_URL + endpoint, options);
-        clearTimeout(timeoutId); // Timeout stoppen, wenn Antwort da ist
+        clearTimeout(timeoutId);
 
-        // Token abgelaufen?
-        if (res.status === 401 && !isRetry) {
-            console.log(`⚠️ Token abgelaufen. Re-Login...`);
+        // 401 → Token abgelaufen, Counter-basierter Re-Login
+        if (res.status === 401) {
+            if (reLoginCount >= MAX_RELOGINS) {
+                throw new Error(`Token konnte ${MAX_RELOGINS}x nicht erneuert werden — Abbruch.`);
+            }
+            reLoginCount++;
+            console.log(`⚠️ Token abgelaufen (Re-Login #${reLoginCount}/${MAX_RELOGINS}). Re-Login...`);
             await loginToDiyanet();
-            return await fetchApi(endpoint, method, body, true); 
+            return await fetchApi(endpoint, method, body, attempt); // gleicher attempt-Zähler
+        }
+
+        // 429 (Rate Limit) oder 5xx (Server-Fehler) → exponentielles Backoff
+        if ((res.status === 429 || res.status >= 500) && attempt < MAX_ATTEMPTS - 1) {
+            const waitSec = Math.min(60, 5 * Math.pow(2, attempt)); // 5s, 10s, 20s, 40s, cap 60s
+            console.warn(`⚠️ HTTP ${res.status} bei ${endpoint} → warte ${waitSec}s und retry (${attempt + 1}/${MAX_ATTEMPTS - 1})`);
+            await sleep(waitSec * 1000);
+            return await fetchApi(endpoint, method, body, attempt + 1);
         }
 
         if (!res.ok) {
@@ -63,15 +78,27 @@ async function fetchApi(endpoint, method = "GET", body = null, isRetry = false) 
 
     } catch (err) {
         clearTimeout(timeoutId);
-        
-        // Wenn es ein Timeout war, versuchen wir es EINMAL erneut
-        if (err.name === 'AbortError' && !isRetry) {
-            console.warn(`⏳ Timeout bei ${endpoint}. Diyanet-Server hängt. Zweiter Versuch...`);
-            await sleep(3000); // 3 Sek. durchatmen vor dem Neustart
-            return await fetchApi(endpoint, method, body, true);
+
+        // Timeout (AbortError) oder Netz-Fehler → ebenfalls mit Backoff retryen
+        const isTransient = err.name === 'AbortError' || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT';
+        if (isTransient && attempt < MAX_ATTEMPTS - 1) {
+            const waitSec = Math.min(60, 5 * Math.pow(2, attempt));
+            console.warn(`⏳ Transient (${err.name || err.code}) bei ${endpoint}. Retry in ${waitSec}s (${attempt + 1}/${MAX_ATTEMPTS - 1})`);
+            await sleep(waitSec * 1000);
+            return await fetchApi(endpoint, method, body, attempt + 1);
         }
-        throw err; // Bei anderen Fehlern normal abbrechen
+        throw err;
     }
+}
+
+// ==========================================
+// ATOMIC WRITE für search_index.json
+// (verhindert kaputte JSON-Datei, falls Prozess mittendrin abbricht)
+// ==========================================
+function saveSearchIndexAtomic(filePath, data) {
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data));
+    fs.renameSync(tmpPath, filePath);
 }
 
 // ==========================================
@@ -82,7 +109,7 @@ async function run() {
     const batchInput = process.env.BATCH || "1";
     const locationsDir = path.join(__dirname, '../data/locations');
     const vakitlerDir = path.join(__dirname, '../data/vakitler');
-    
+
     if (!fs.existsSync(locationsDir)) fs.mkdirSync(locationsDir, { recursive: true });
     if (!fs.existsSync(vakitlerDir)) fs.mkdirSync(vakitlerDir, { recursive: true });
 
@@ -95,7 +122,7 @@ async function run() {
     try {
         await loginToDiyanet();
         const countriesRes = await fetchApi("/api/Place/Countries");
-        const allCountries = countriesRes.data; 
+        const allCountries = countriesRes.data;
         fs.writeFileSync(path.join(locationsDir, 'countries.json'), JSON.stringify(allCountries));
 
         // 10-Batch Logik
@@ -117,7 +144,7 @@ async function run() {
 
         for (const country of targetCountries) {
             console.log(`\n🌍 Verarbeite: ${country.name} (ID: ${country.id})`);
-            
+
             try {
                 const statesData = await fetchApi(`/api/Place/States/${country.id}`);
                 const statesMap = statesData.data.map(s => ({ id: s.id.toString(), name: s.name }));
@@ -125,9 +152,8 @@ async function run() {
                 await sleep(500);
 
                 for (const state of statesMap) {
-                    // Logge das Bundesland/Eyalet
                     console.log(`  📍 Städte für: ${state.name}`);
-                    
+
                     const citiesData = await fetchApi(`/api/Place/Cities/${state.id}`);
                     const citiesMap = citiesData.data.map(c => ({ id: c.id.toString(), name: c.name }));
                     fs.writeFileSync(path.join(locationsDir, `cities_${state.id}.json`), JSON.stringify(citiesMap));
@@ -135,9 +161,7 @@ async function run() {
 
                     for (const city of citiesMap) {
                         try {
-                            // Detaillierter Log für die Stadt
                             console.log(`    ⏳ Vakitler: ${city.name} (${city.id})`);
-                            
                             const vData = await fetchApi(`/api/PrayerTime/Monthly/${city.id}`);
                             fs.writeFileSync(path.join(vakitlerDir, `${city.id}.json`), JSON.stringify(vData));
                             searchIndex.push({ id: city.id, name: city.name, country: country.id.toString() });
@@ -148,21 +172,31 @@ async function run() {
                                 throw cityError;
                             }
                         }
-                        await sleep(1000); // 1 Sekunde Wartezeit
+                        await sleep(1000);
                     }
                 }
+
+                // 💾 NACH JEDEM LAND: Search-Index atomar speichern,
+                // damit bei Crash nicht alles weg ist.
+                saveSearchIndexAtomic(searchIndexPath, searchIndex);
+                console.log(`💾 Search-Index gespeichert (${searchIndex.length} Städte).`);
+
             } catch (countryError) {
                 console.error(`❌ Fehler bei Land ${country.name}:`, countryError.message);
+                // Auch bei Fehler den bisherigen Stand sichern
+                saveSearchIndexAtomic(searchIndexPath, searchIndex);
             }
         }
 
-        console.log("\n💾 Speichere Such-Index...");
-        fs.writeFileSync(searchIndexPath, JSON.stringify(searchIndex));
+        console.log("\n💾 Finale Speicherung Such-Index...");
+        saveSearchIndexAtomic(searchIndexPath, searchIndex);
         console.log("🎉 Batch abgeschlossen!");
 
     } catch (error) {
         console.error("❌ Kritischer Abbruch:", error);
-        process.exit(1); 
+        // Best-Effort: was wir bis hierhin haben, persistieren
+        try { saveSearchIndexAtomic(searchIndexPath, searchIndex); } catch(e) {}
+        process.exit(1);
     }
 }
 run();
