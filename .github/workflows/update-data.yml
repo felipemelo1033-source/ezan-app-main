@@ -3,7 +3,7 @@ name: Diyanet Data Fetcher
 on:
   schedule:
     - cron: '0 2 * * 0' # Jeden Sonntag um 02:00 Uhr
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       batchNumber:
         description: 'Batch auswählen (1-10)'
@@ -37,9 +37,10 @@ jobs:
           fi
 
       - name: Diyanet Bot starten
+        id: bot
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 350
+          timeout_minutes: 330            # Sicherheitsabstand zum 360-Min-Hard-Limit
           max_attempts: 3
           retry_wait_seconds: 300
           command: node scripts/diyanet-bot.js
@@ -48,14 +49,27 @@ jobs:
           DIYANET_PASSWORD: ${{ secrets.DIYANET_PASSWORD }}
           BATCH: ${{ env.BATCH_TO_RUN }}
 
+      # WICHTIG: if: always() → committed auch dann, wenn der Bot fehlgeschlagen ist,
+      # damit die bis dahin gespeicherten Daten nicht verloren gehen.
       - name: Daten speichern (Mit Konflikt-Schutz)
+        if: always()
         run: |
+          set -e
           git config --global user.name "ATF-Bot"
           git config --global user.email "bot@atf-mobil.com"
-          git add data/
-          git commit -m "🤖 Auto-Update: Batch ${{ env.BATCH_TO_RUN }} erfolgreich" || echo "Nichts neu"
-          
-          # NEU: Holt erst die neuesten Änderungen vom Server, um Konflikte zu vermeiden!
-          git pull --rebase origin main
-          
-          git push
+
+          git add data/ || true
+
+          # Nichts zu committen? → still weiterlaufen
+          if ! git diff --cached --quiet; then
+            git commit -m "🤖 Auto-Update: Batch ${{ env.BATCH_TO_RUN }} (status: ${{ steps.bot.outcome }})"
+          else
+            echo "Keine Änderungen zum Committen."
+          fi
+
+          # Bis zu 3 Versuche für Pull + Push (gegen Race-Conditions mit parallelen Pushes)
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && break
+            echo "Push fehlgeschlagen, Versuch $i — warte 10s..."
+            sleep 10
+          done
