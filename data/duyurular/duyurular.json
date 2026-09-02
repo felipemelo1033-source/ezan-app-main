@@ -17,7 +17,7 @@
         "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-2.jpg"
       ],
       "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-flyer.jpg",
-      "linkButtonKlein": true,
+      "linkButtonKlein": false,
       "linkButtonGross": "Hemen Başvur"
     }
   },
