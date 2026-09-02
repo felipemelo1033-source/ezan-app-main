@@ -2,21 +2,23 @@
   {
     "category": "Genel Merkez",
     "date": "05.09.2026",
-    "title": "2027 HAC ORGANİZASYONU",
-    "text": "2027 Hac Organizasyonu kayıtlarımız başlamıştır.",
-    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg",
-    "link": "https://atfreisen.de",
+    "title": "Test Duyurusu — Tüm Alanlar Dolu",
+    "text": "Bu kayıt, duyuru detay sayfasının bütün bölümlerini gösterir. Listede yalnızca bu kısa özet görünür; geri kalanı 'Daha Fazla' ile açılır.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-kapak.jpg",
+    "link": "https://www.turkfederasyon.com",
     "linkText": "Bağlantıya Git",
     "detail": {
       "heading1": "Birinci Başlık",
-      "text1": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz “2027 Hac Organizasyonu” kayıtlarımız başlamıştır.",
+      "text1": "Buraya ilk bölümün metni gelir. <b>Kalın</b> yazı, satır sonu <br> ve <a href=\"https://www.turkfederasyon.com\">bağlantı</a> kullanılabilir — mevcut title/text alanlarıyla aynı davranış.",
       "heading2": "İkinci Başlık",
       "text2": "İkinci bölümün metni. Görsellerin altında yer alır. Bu alanı boş bırakırsan bölüm hiç çizilmez.",
       "images": [
-        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg",
-        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/DB.jpg"
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-1.jpg",
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-2.jpg"
       ],
-      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/DB.jpg"
+      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-flyer.jpg",
+      "linkButtonKlein": true,
+      "linkButtonGross": "Hemen Başvur"
     }
   },
   {
