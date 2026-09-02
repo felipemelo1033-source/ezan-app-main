@@ -1,18 +1,42 @@
 [
   {
     "category": "Genel Merkez",
-    "date": "21 Nisan 2026",
-    "title": "ATF Mobil Uygulaması Yayında!",
-    "text": "Uzun süren çalışmalarımız sonucunda yeni mobil uygulamamız tüm teşkilat mensuplarımızın kullanımına sunulmuştur. Hayırlı olsun.",
-    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/1_20260731_172325_0000.jpg",
-    "link": "https://www.turkfederasyon.com"
+    "date": "05.09.2026",
+    "title": "2027 HAC ORGANİZASYONU",
+    "text": ""2027 Hac Organizasyonu" kayıtlarımız başlamıştır.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg",
+    "link": "https://atfreisen.de",
+    "linkText": "Bağlantıya Git",
+    "detail": {
+      "heading1": "Birinci Başlık",
+      "text1": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz “2027 Hac Organizasyonu” kayıtlarımız başlamıştır.
+#TürkFederasyonHacUmre",
+      "heading2": "İkinci Başlık",
+      "text2": "İkinci bölümün metni. Görsellerin altında yer alır. Bu alanı boş bırakırsan bölüm hiç çizilmez.",
+      "images": [
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg",
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-2.jpg"
+      ],
+      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg"
+    }
   },
   {
     "category": "Genel Merkez",
-    "date": "01 Mayıs 2026",
-    "title": "İkinci Duyuru Başlığı",
-    "text": "Duyuru metni buraya gelir.",
-    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/1_20260731_172325_0000.jpg",
-    "link": "https://www.turkfederasyon.com"
+    "date": "04.09.2026",
+    "title": "Test Duyurusu — Yalnızca Metin",
+    "text": "Görselsiz ve bağlantısız bir duyuru. Detay sayfası yalnızca başlık ve metinle açılır; boş bölümler çizilmediği için sayfa yine dengeli görünür.",
+    "detail": {
+      "heading1": "Açıklama",
+      "text1": "Yalnızca bu bölüm var. Ne kapak görseli, ne flyer, ne galeri, ne de bağlantı düğmesi. Sayfa buna göre kısalır."
+    }
+  },
+  {
+    "category": "Genel Merkez",
+    "date": "03.09.2026",
+    "title": "Test Duyurusu — Eski Biçim (detail yok)",
+    "text": "Bu kayıtta 'detail' alanı hiç yok — yani şu ana kadar yayınladığın duyurularla birebir aynı yapıda. Kart yine 'Daha Fazla' gösterir ve detay sayfası başlık, özet ve bağlantı düğmesiyle açılır. Mevcut duyurularını değiştirmene gerek yok.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-kapak.jpg",
+    "link": "https://www.turkfederasyon.com",
+    "linkText": "Bağlantıya Git"
   }
 ]
