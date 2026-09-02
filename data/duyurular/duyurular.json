@@ -14,9 +14,9 @@
       "text2": "İkinci bölümün metni. Görsellerin altında yer alır. Bu alanı boş bırakırsan bölüm hiç çizilmez.",
       "images": [
         "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027.jpeg",
-        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/DB.jpg"
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/DB.jpg"
       ],
-      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/DB.jpg"
+      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/DB.jpg"
     }
   },
   {
