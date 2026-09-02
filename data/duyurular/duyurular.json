@@ -1,43 +1,59 @@
 [
   {
     "category": "Genel Merkez",
-    "date": "05.09.2026",
-    "title": "Test Duyurusu — Tüm Alanlar Dolu",
-    "text": "Bu kayıt, duyuru detay sayfasının bütün bölümlerini gösterir. Listede yalnızca bu kısa özet görünür; geri kalanı 'Daha Fazla' ile açılır.",
-    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-kapak.jpg",
+    "date": "02.09.2026",
+    "title": "🕋 2027 HAC ORGANİZASYONU",
+    "text": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz “2027 Hac Organizasyonu” kayıtlarımız başlamıştır.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027-kart.jpg",
+    "link": "https://wa.me/4917663814414",
+    "linkText": "WhatsApp ile Kayıt",
+    "detail": {
+      "heading1": "Kayıtlarımız Başlamıştır",
+      "text1": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz <b>“2027 Hac Organizasyonu”</b> kayıtlarımız başlamıştır.<br><br>#TürkFederasyonHacUmre",
+      "heading2": "Bilgi ve Kayıt",
+      "text2": "📲 WhatsApp: <a href=\"https://wa.me/4917663814414\">+49 176 63814414</a><br>🌐 <a href=\"https://www.atfreisen.de\">www.atfreisen.de</a>",
+      "images": [
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/hac2027-detay.jpg"
+      ],
+      "linkButtonKlein": true,
+      "linkButtonGross": "WhatsApp ile Kayıt Ol"
+    }
+  },
+  {
+    "category": "Genel Merkez",
+    "date": "01.09.2026",
+    "title": "ATF Mobil Uygulaması Yayında",
+    "text": "ATF Mobil uygulamamız yayında. Namaz vakitleri, Kur'an-ı Kerim, kıble pusulası ve duyurular artık cebinizde.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/atfmobil-kart.jpg",
     "link": "https://www.turkfederasyon.com",
     "linkText": "Bağlantıya Git",
     "detail": {
-      "heading1": "Birinci Başlık",
-      "text1": "Buraya ilk bölümün metni gelir. <b>Kalın</b> yazı, satır sonu <br> ve <a href=\"https://www.turkfederasyon.com\">bağlantı</a> kullanılabilir — mevcut title/text alanlarıyla aynı davranış.",
-      "heading2": "İkinci Başlık",
-      "text2": "İkinci bölümün metni. Görsellerin altında yer alır. Bu alanı boş bırakırsan bölüm hiç çizilmez.",
+      "heading1": "Uygulamamız Yayında",
+      "text1": "ATF Mobil uygulaması artık kullanıma açıktır. Uygulama içinde şunları bulabilirsiniz:<br><ul><li>Günlük ve aylık namaz vakitleri</li><li>Kur'an-ı Kerim — Diyanet ve Evrensel Mushaf</li><li>Kıble pusulası</li><li>Esmaül Hüsna, zikirmatik, namaz takibi</li><li>Genel Merkez duyuruları</li></ul>",
       "images": [
-        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-1.jpg",
-        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-2.jpg"
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/atfmobil-detay.jpg"
       ],
-      "flyer": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-flyer.jpg",
-      "linkButtonKlein": false,
-      "linkButtonGross": "Hemen Başvur"
+      "linkButtonGross": true
     }
   },
   {
     "category": "Genel Merkez",
-    "date": "04.09.2026",
-    "title": "Test Duyurusu — Yalnızca Metin",
-    "text": "Görselsiz ve bağlantısız bir duyuru. Detay sayfası yalnızca başlık ve metinle açılır; boş bölümler çizilmediği için sayfa yine dengeli görünür.",
+    "date": "15.08.2026",
+    "title": "🕋 2026 KIŞ UMRESİ",
+    "text": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz “2026 Kış Umresi” kayıtlarımız başlamıştır.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/umre2026-kart.jpg",
+    "link": "https://wa.me/4917663814414",
+    "linkText": "WhatsApp ile Kayıt",
     "detail": {
-      "heading1": "Açıklama",
-      "text1": "Yalnızca bu bölüm var. Ne kapak görseli, ne flyer, ne galeri, ne de bağlantı düğmesi. Sayfa buna göre kısalır."
+      "heading1": "Kayıtlarımız Başlamıştır",
+      "text1": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz <b>“2026 Kış Umresi”</b> kayıtlarımız başlamıştır.<br><br><b>Son kayıt tarihi: 01.11.2026</b><br><br>#TürkFederasyonHacUmre",
+      "heading2": "Bilgi ve Kayıt",
+      "text2": "📲 WhatsApp: <a href=\"https://wa.me/4917663814414\">+49 176 63814414</a><br>🌐 <a href=\"https://www.atfreisen.de\">www.atfreisen.de</a>",
+      "images": [
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/umre2026-detay.jpg"
+      ],
+      "linkButtonKlein": true,
+      "linkButtonGross": "WhatsApp ile Kayıt Ol"
     }
-  },
-  {
-    "category": "Genel Merkez",
-    "date": "03.09.2026",
-    "title": "Test Duyurusu — Eski Biçim (detail yok)",
-    "text": "Bu kayıtta 'detail' alanı hiç yok — yani şu ana kadar yayınladığın duyurularla birebir aynı yapıda. Kart yine 'Daha Fazla' gösterir ve detay sayfası başlık, özet ve bağlantı düğmesiyle açılır. Mevcut duyurularını değiştirmene gerek yok.",
-    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/ornek-kapak.jpg",
-    "link": "https://www.turkfederasyon.com",
-    "linkText": "Bağlantıya Git"
   }
 ]
