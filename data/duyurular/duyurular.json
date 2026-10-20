@@ -1,6 +1,25 @@
 [
   {
     "category": "Genel Merkez",
+    "date": "20.10.2026",
+    "title": "🇹🇷 TÜRKİYE KÜLTÜR GEZİSİ",
+    "text": "Türk Federasyon Türkiye Kültür Gezisi: Edirne, Çanakkale, Bursa, Bilecik, Söğüt, Kütahya, Ankara ve İstanbul. Muhtemel tarihler: 26 Mart – 4 Nisan 2027.",
+    "image": "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/IMG-20260929-WA0011.jpg",
+    "link": "https://www.turkfederasyon.com",
+    "linkText": "Bilgi İçin İletişim",
+    "detail": {
+      "heading1": "Türkiye Kültür Gezisi",
+      "text1": "Türk Federasyon tarafından düzenlenmesi planlanan <b>Türkiye Kültür Gezisi</b> kapsamında şu şehirler ziyaret edilecektir:<br><br><b>Edirne · Çanakkale · Bursa · Bilecik · Söğüt · Kütahya · Ankara · İstanbul</b><br><br><b>Muhtemel tarihler</b><br>🚌 Gidiş: 26 Mart 2027 Cuma<br>🚌 Dönüş: 4 Nisan 2027 Pazar<br><br><i>Tarihler afişte muhtemel olarak belirtilmiştir.</i>",
+      "heading2": "Geniş Bilgi ve İletişim",
+      "text2": "Türk Federasyon Genel Merkezi, Bölge Başkanlıkları ve Bağlı Dernekler<br>📞 069 426 942 90<br>🌐 <a href=\"https://www.turkfederasyon.com\">www.turkfederasyon.com</a><br>✉️ <a href=\"mailto:info@turkfederasyon.com\">info@turkfederasyon.com</a>",
+      "images": [
+        "https://raw.githubusercontent.com/felipemelo1033-source/ezan-app-main/main/data/duyurular/img/IMG-20260929-WA0011.jpg"
+      ],
+      "linkButtonGross": "Bilgi İçin İletişim"
+    }
+  },
+  {
+    "category": "Genel Merkez",
     "date": "02.09.2026",
     "title": "🕋 2027 HAC ORGANİZASYONU",
     "text": "ATF Hac ve Umre Organizasyonu himayesinde gerçekleştireceğimiz “2027 Hac Organizasyonu” kayıtlarımız başlamıştır.",
